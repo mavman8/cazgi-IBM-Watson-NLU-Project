@@ -1,7 +1,7 @@
 const express = require('express');
 const app = new express();
 const NaturalLanguageUnderstandingV1 = require('ibm-watson/natural-language-understanding/v1');
-
+const { IamAuthenticator } = require('ibm-watson/auth');
 
 /*This tells the server to use the client 
 folder for all static resources*/
@@ -16,21 +16,26 @@ variables that you set up in the .env file*/
 
 const dotenv = require('dotenv');
 dotenv.config();
-
 const api_key = process.env.API_KEY;
 const api_url = process.env.API_URL;
 
+console.log('this is api_key:' + api_key); 
+console.log('This is api url:'  + api_url);
+
+const naturalLanguageUnderstanding = getNLUInstance();
+
 function getNLUInstance() {
 
-     const { IamAuthenticator } = require('ibm-watson/auth');
-     const naturalLanguageUnderstanding = new NaturalLanguageUnderstandingV1({
+     
+     const naturalLanguageUnderstanding1 = new NaturalLanguageUnderstandingV1({
      version: '2021-08-01',
      authenticator: new IamAuthenticator ({
         apikey: api_key,
     }),
     serviceUrl: api_url,
 });
-return naturalLanguageUnderstanding
+console.log("got instance");
+return naturalLanguageUnderstanding1
 
     /*Type the code to create the NLU instance and return it.
     You can refer to the image in the instructions document
@@ -59,7 +64,8 @@ app.get("/url/emotion", (req,res) => {
         }
      
      const naturalLanguageUnderstanding = getNLUInstance();
-     
+
+  
      naturalLanguageUnderstanding.analyze(analyzeParams)
      .then(analysisResults => {
         //Print the JSON returned by NLU instance as a formatted string
@@ -75,6 +81,8 @@ app.get("/url/emotion", (req,res) => {
 //The endpoint for the webserver ending with /url/sentiment
 app.get("/url/sentiment", (req,res) => {
     let urlToAnalyze = req.query.url
+
+    console.log("url to analyze:"+ urlToAnalyze); 
     const analyzeParams = 
     {
         "url": urlToAnalyze,
@@ -85,22 +93,28 @@ app.get("/url/sentiment", (req,res) => {
             }
         }
     }
+
     const naturalLanguageUnderstanding = getNLUInstance();
+   
+    // console.log("Analyzing Sentiment:" + JSON.stringify(analyzeParams)); 
+    // console.log('This is address:' + JSON.stringify(naturalLanguageUnderstanding));
+    naturalLanguageUnderstanding.analyze(analyzeParams)
+    .then(analysisResults => {
+        //Retrieve the sentiment and return it as a formatted string
+        console.log("analyzing results" + analysisResults.result.keywords[0]);
+        return res.send(analysisResults.result.keywords[0].sentiment,null,2);
+    })
+    .catch(err => {
 
-naturalLanguageUnderstanding.analyze(analyzeParams)
-.then(analysisResults => {
-    //Retrieve the sentiment and return it as a formatted string
-
-    return res.send(analysisResults.result.keywords[0].sentiment,null,2);
-})
-.catch(err => {
-    return res.send("Could not do desired operation "+err);
-});
+        console.log("error2:"+ JSON.stringify(err))
+        return res.send("Could not do desired operation "+err);
+    });
 });
 
 //The endpoint for the webserver ending with /text/emotion
 app.get("/text/emotion", (req,res) => {
     let textToAnalyze = req.query.text
+    console.log("text to analyze:"+ textToAnalyze); 
     const analyzeParams = 
     {
         "text": textToAnalyze,
@@ -112,8 +126,8 @@ app.get("/text/emotion", (req,res) => {
         }
     }
 
-    const naturalLanguageUnderstanding = getNLUInstance();
-
+   
+const naturalLanguageUnderstanding = getNLUInstance();
 naturalLanguageUnderstanding.analyze(analyzeParams)
 .then(analysisResults => {
     //Retrieve the emotion and return it as a formatted string
@@ -126,7 +140,8 @@ naturalLanguageUnderstanding.analyze(analyzeParams)
 });
 
 app.get("/text/sentiment", (req,res) => {
-     let textToAnalyze = req.query.text
+    
+    let textToAnalyze = req.query.text
     const analyzeParams = 
     {
         "text": textToAnalyze,
@@ -142,10 +157,12 @@ app.get("/text/sentiment", (req,res) => {
 naturalLanguageUnderstanding.analyze(analyzeParams)
 .then(analysisResults => {
     //Retrieve the sentiment and return it as a formatted string
+    console.log("Found results");
 
     return res.send(analysisResults.result.keywords[0].sentiment,null,2);
 })
 .catch(err => {
+    console.log("Error:"+ err);
     return res.send("Could not do desired operation "+err);
 });
 });
